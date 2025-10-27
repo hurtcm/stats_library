@@ -12,6 +12,9 @@ library(multcomp)
 library(car) 
 library(rstatix)
 
+#   Set the random number generator
+set.seed(318)
+
 #   Create a data set (data frame) for analysis
 df <- data.frame(subj = paste("subject", 1:30, sep = "_"),
                  cont = rnorm(30, 7, 3),
@@ -20,6 +23,7 @@ df <- data.frame(subj = paste("subject", 1:30, sep = "_"),
 df
 str(df)
 
+##  R base - Descriptive statistic method      
 df_n <- apply(df[ , 2:4], 2, length)
 df_mean <- apply(df[ , 2:4], 2, mean)
 df_median <- apply(df[ ,2:4], 2 ,median)
@@ -38,7 +42,7 @@ df_long <- df |>
     )
 head(df_long)
 
-#   Summary Stats using tidy data set
+##   R Tidy descriptive statistic method.
 df_long|> 
     group_by(treatment) |> 
         summarize(
@@ -49,32 +53,59 @@ df_long|>
             se_val  = sd_val/sqrt(count)
      )
 
-#   Newer method using list() functions to reduce the number
-#       of line of code 
+##   Newer Alternative R Tidy descriptive statistic method. 
+#       The method uses across and  list() functions to reduce 
+#       the number of lines of code 
 df_long |>  
     group_by(treatment) |> 
     summarize(across(effect,
         list(count = length, mean_val = mean, sd_val = sd)
     ))
-#   The across() allows for multiple dependent values  to be
-#       analyzed. Note it labels the dependent values to be 
-#       distinguished.
+##  Note: The across() function allows for multiple dependent 
+#       values to be analyzed. Note it also labels the dependent 
+#       values to distinguished between dependent variables.
 ###
 
-# Graphical presentation of the data
+### Graphical presentation of data
+##  Boxplot
+df_long |> 
+    ggplot(aes(x = treatment, y = effect, fill = treatment)) +
+    geom_boxplot()
+
+##  Histogram (composite)
+df_long |> 
+    ggplot(aes(x = effect, color = treatment, fill = treatment))+
+    geom_histogram(alpha = 0.3, bin = 20)
+
+##  Density plot (Composite)
+df_long |> 
+    ggplot(aes(x = effect, color = treatment, fill = treatment))+
+    geom_density(alpha = 0.3)
 
 
-
-
-#   One-Way Anova analysis of data 
+#   One-Way Anova analysis - Test statistic of data 
 model_df_aov <- aov(effect ~ treatment, df_long)
 summary(model_df_aov)
 
 #   Diagnostic graphs examining of the model analysis 
 par(mfrow = c(2, 2))
-par(mar = c(3, 2,2,2))
+par(mar = c(3, 2, 2, 2))
 plot(model_df_aov, which = 1:4)
+plot(model_df_aov, which = 5:6)
 
+
+#   Reset margins to default settings
+#   Margin default is c(5.1, 4.1, 4.1, 2.1).
+par(mar = c(5.1, 4.1, 4.1, 2.1))
+
+
+#   Post-Hoc comparisons between groups
+tukey_model <- TukeyHSD(model_df_aov)
+tukey_model
+plot(tukey_model, las = 2)
+
+
+################################################################
 #   Plot 1 - Residuals vs Fitted Residuals: homoscedasticity ~
 #       relationship between response and predictors.Points 
 #       should be randomly distributed around the zero line and
@@ -85,30 +116,26 @@ plot(model_df_aov, which = 1:4)
 
 
 
+##################################################################
 
-plot(model_df_aov, which = 5:6)
-
-
-#   Margin default is c(5.1, 4.1, 4.1, 2.1).
-# Create data set for standard two way anova 
-
-
-
+head(df_long)
+################################################################
 # ploting methods:
 #interaction.plot(independent variable1, independent variable 2, 
 #                dependent variable, main = "###", xlab = "##",
 #                  ylab = " ", trace.label = "### treatment")
-
+################################################################
 #
 #
+###                 Two-Way ANOVA
 
 #   Data creation for two-way factorial ANOVA
 df1 <- data.frame(subj = (rep(paste("subject", 1:50, sep = "_"),
                              time = 2)),
                  conds = rep(c("cond1", "cond2"), c(50, 50)),
-                 cont = rnorm(100, 7, 3),
-                 treat1 = rnorm(100, 8.5, 3),
-                 treat2 = rnorm(100, 9.25, 3))
+                 cont = rnorm(100, 7, 2),
+                 treat1 = rnorm(100, 8.5, 2.5),
+                 treat2 = rnorm(100, 10.5, 3))
 df1 |> head()
 
 df_long1 <- pivot_longer(df1, 
@@ -117,10 +144,15 @@ df_long1 <- pivot_longer(df1,
     values_to = "scores"
 )
 head(df_long1)
+
+
 ggplot(data = df_long1, aes(
     x = treatments, y = scores, fill = conds, )) + 
     geom_boxplot()
+
 tail(df1)
+
+
 model_aov1 <- aov(scores ~ conds * treatments + 
         Error(subj/(conds * treatments)), df_long1)
 
