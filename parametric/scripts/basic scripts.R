@@ -1,15 +1,34 @@
+################################################################
+#####           Run Through of Basic statistics            #####
+###
+
+#   Clear memory and environment
+rm(list = ls(all.names = TRUE))
+gc()
+
+#   Libraries needed
 library(tidyverse)
 library(multcomp)
 library(car) 
 library(rstatix)
 
-df <- data.frame(subj = paste("subject", 1:100, sep = "_"),
-                 cont = rnorm(100, 7, 3),
-                 treat1 = rnorm(100, 8.5, 3),
-                 treat2 = rnorm(100, 9.25, 3))
+#   Create a data set (data frame) for analysis
+df <- data.frame(subj = paste("subject", 1:30, sep = "_"),
+                 cont = rnorm(30, 7, 3),
+                 treat1 = rnorm(30, 8.5, 3),
+                 treat2 = rnorm(30, 9.25, 3))
+df
+str(df)
 
+df_n <- apply(df[ , 2:4], 2, length)
+df_mean <- apply(df[ , 2:4], 2, mean)
+df_median <- apply(df[ ,2:4], 2 ,median)
+df_sd <- apply(df[ , 2:4], 2, sd)
+df_se <- (apply(df[ , 2:4], 2, sd)/sqrt(df_n))
+rbind(df_n, df_mean, df_median, df_sd,df_se)
+apply(df[ , 2:4], 2, summary)
 
-
+#   Wrangle data to tidy format
 df |> head()
 df_long <- df |> 
     pivot_longer(
@@ -18,12 +37,59 @@ df_long <- df |>
         values_to = "effect"
     )
 head(df_long)
+
+#   Summary Stats using tidy data set
+df_long|> 
+    group_by(treatment) |> 
+        summarize(
+            count = n(),
+            mean_val = mean (effect, na.rm = TRUE), 
+            median_val = median(effect, na.rm = TRUE), 
+            sd_val  = sd(effect, na.rm = TRUE),
+            se_val  = sd_val/sqrt(count)
+     )
+
+#   Newer method using list() functions to reduce the number
+#       of line of code 
+df_long |>  
+    group_by(treatment) |> 
+    summarize(across(effect,
+        list(count = length, mean_val = mean, sd_val = sd)
+    ))
+#   The across() allows for multiple dependent values  to be
+#       analyzed. Note it labels the dependent values to be 
+#       distinguished.
+###
+
+# Graphical presentation of the data
+
+
+
+
+#   One-Way Anova analysis of data 
 model_df_aov <- aov(effect ~ treatment, df_long)
 summary(model_df_aov)
+
+#   Diagnostic graphs examining of the model analysis 
 par(mfrow = c(2, 2))
+par(mar = c(3, 2,2,2))
 plot(model_df_aov, which = 1:4)
+
+#   Plot 1 - Residuals vs Fitted Residuals: homoscedasticity ~
+#       relationship between response and predictors.Points 
+#       should be randomly distributed around the zero line and
+#       fit should be at zero (horizontal).
+
+#   Plot2 - Q-Q Plot: normality ~ Points fit the line for 
+#       quantile vs 
+
+
+
+
 plot(model_df_aov, which = 5:6)
 
+
+#   Margin default is c(5.1, 4.1, 4.1, 2.1).
 # Create data set for standard two way anova 
 
 
