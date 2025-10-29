@@ -43,7 +43,8 @@ df_long <- df |>
 head(df_long)
 
 ##   R Tidy descriptive statistic method.
-df_long|> 
+
+df_stat <- df_long|> 
     group_by(treatment) |> 
         summarize(
             count = n(),
@@ -52,6 +53,7 @@ df_long|>
             sd_val  = sd(effect, na.rm = TRUE),
             se_val  = sd_val/sqrt(count)
      )
+df_stat
 
 ##   Newer Alternative R Tidy descriptive statistic method. 
 #       The method uses across and  list() functions to reduce 
@@ -76,7 +78,7 @@ df_long |>
 ##  Histogram (composite)
 df_long |> 
     ggplot(aes(x = effect, color = treatment, fill = treatment))+
-    geom_histogram(alpha = 0.3, bin = 20) +
+    geom_histogram(alpha = 0.3, bins = 20) +
     theme_minimal()
 
 ##  Density plot (Composite)
@@ -84,7 +86,6 @@ df_long |>
     ggplot(aes(x = effect, color = treatment, fill = treatment))+
     geom_density(alpha = 0.3) +
     theme_minimal()
-
 
 #   One-Way Anova analysis - Test statistic of data 
 model_df_aov <- aov(effect ~ treatment, df_long)
@@ -108,8 +109,23 @@ tukey_model
 
 plot(tukey_model, las = 2)
 
+df_long |> 
+    ggplot(aes(x = treatment, y = effect, fill = treatment)) +
+    geom_bar(stat = "identity") + 
+    theme_classic()
 
-################################################################
+#   Addition of standard error bars to graph. 
+#   Needed to create summary table for data ~ df_stat_long
+df_stat|> 
+    ggplot(aes(x = treatment, y = mean_val, 
+               fill = treatment)) +
+    geom_bar(stat = "identity", alpha = 0.7) +
+    geom_errorbar(aes(ymin = mean_val - se_val,
+                  ymax = mean_val + se_val), 
+                  width = 0.25) +
+    theme_classic()
+
+####theme_classic()################################################################
 #   Plot 1 - Residuals vs Fitted Residuals: homoscedasticity ~
 #       relationship between response and predictors.Points 
 #       should be randomly distributed around the zero line and
